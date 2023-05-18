@@ -15,31 +15,93 @@
 program:
     subprogram {exit(0);}
 subprogram:
-     stmt subprogram {printf("This is 4\n");}
-    |stmt {printf("This is 3\n");}
+    stmt subprogram
+    |stmt 
     ;
 stmt: 
-    NUM subst EOL {printf("This is stmt with EOL\n");}
-    | NUM subst {printf("This is stmt without EOL\n");}
+    NUM END EOL {printf("Error : END not at the end\n"); exit(0);}
+    | NUM END {printf("========================EXITING================================"); exit(0);}
+    | NUM subst EOL
+    | NUM subst {printf("Program without END! Error!\n");exit(0);}
     | subst EOL {printf("Error: No Address given\n");exit(0);}
     | subst {printf("Error: No Address given\n");exit(0);}
     ;
 subst:
-    commentrem
+    {printf("Comment!\n");} REM
     | data {printf("Data added\n");}
     | returntomain
     | stop
-    | let
+    | {printf("Let initialisation found!\n");} let
     | inputvar
     | gotoline
-    | endprog
+    | {printf("Defining a function!\n");} def
+    | {printf("Branch if!\n");} ifthen
+    | {printf("Print statement!\n");} PRINT
+    | dim
+    | {printf("Loop detected!\n");} forloop
     | {printf("Wrong Command Given"); exit(0);}
     ;
-commentrem:
-    REM {printf("Rem found!\n");} ignoreline 
+def:
+    DEF FUNC varint EQUAL equation
+    | DEF FUNC varfloat EQUAL equation
+    | DEF FUNC vardouble EQUAL equation
+    | DEF FUNC EQUAL equation
     ;
-ignoreline:
-    IGN
+ifthen:
+    IF logicalequation THEN NUM
+    ;
+logicalequation:
+    inequation
+    | NOT logicalequation
+    | logicalequation AND inequation
+    | logicalequation OR inequation
+    | logicalequation XOR inequation
+    ;
+inequation:
+    equation
+    | equation BEQ equation
+    | equation BNE equation
+    | equation BGE equation
+    | equation BLE equation
+    | equation BGT equation
+    | equation BLT equation
+    ;
+equation: {printf("Encountered an equation!\n");}
+    factor
+    | equation ADD factor
+    | equation SUB factor
+    ;
+factor:
+    term
+    | factor PRO term
+    | factor DIV term
+    ;
+term:
+    num 
+    | ADD num
+    | SUB num
+    ;
+num:
+    number
+    | number POWER number
+    ;
+number:
+    value
+    | OPA equation CPA
+    ;
+value:
+    NUM 
+    | FLOAT
+    | DOUBLE
+    | STRING
+    | VARINT 
+    | VARFLOAT 
+    | VARDOUBLE 
+    | VARSTRING
+    | VARINT OPA equation CPA
+    | VARFLOAT OPA equation CPA
+    | VARDOUBLE OPA equation CPA
+    | FUNC
     ;
 returntomain:
     RETURN    
@@ -50,27 +112,26 @@ returntomain:
 stop: 
     STOP 
     {
-        printf("Stop hit\n");
-        exit(0);
+        printf("======STOP=======\n");
     }
     ;
-endprog: 
-    END 
-    {
-        printf("End hit\n");
-        exit(0); 
-    }
+dim:
+    DIM dimb {printf("DIM run!\n");}
     ;
-// dim: dim COMMA VARINT OPA NUM CPA
-//     | dim COMMA VARINT OPA NUM COMMA NUM CPA
-//     | DIM VARINT OPA NUM CPA
-//     | DIM VARINT OPA NUM COMMA NUM CPA
-//     ;
+dimb: dimb COMMA VARINT OPA NUM CPA
+    | dimb COMMA VARINT OPA NUM COMMA NUM CPA
+    | VARINT OPA NUM CPA
+    | VARINT OPA NUM COMMA NUM CPA
+    ;
 let:
-    LET VARINT EQUAL NUM {printf("Var = num\n")}
-    | LET VARFLOAT EQUAL FLOAT {printf("Var = float\n")}
-    | LET VARSTRING EQUAL STRING {printf("Var = string\n")}
-    | LET VARDOUBLE EQUAL DOUBLE {printf("Var = double\n")}
+    LET VARINT EQUAL NUM 
+    | LET varint EQUAL varint
+    | LET VARFLOAT EQUAL FLOAT 
+    | LET varfloat EQUAL varfloat 
+    | LET VARSTRING EQUAL STRING 
+    | LET varstring EQUAL varstring 
+    | LET VARDOUBLE EQUAL DOUBLE
+    | LET vardouble EQUAL vardouble 
     | LET leterror
     ;
 leterror: VARINT EQUAL varint 
@@ -78,7 +139,11 @@ leterror: VARINT EQUAL varint
     | VARSTRING EQUAL varstring 
     | VARDOUBLE EQUAL vardouble 
     ;
-varint: VARINT {printf("Varint = Varint");}
+varint: VARINT 
+    | equation
+    | VARINT OPA equation CPA 
+    | VARINT OPA equation CPA ADD equation
+    | OPA equation CPA
     | FLOAT {printf("Error! Unmatching Type!\n"); exit(0);}
     | VARFLOAT {printf("Error! Unmatching Type!\n"); exit(0);}
     | STRING {printf("Error! Unmatching Type!\n"); exit(0);}
@@ -86,7 +151,10 @@ varint: VARINT {printf("Varint = Varint");}
     | DOUBLE {printf("Error! Unmatching Type!\n"); exit(0);}
     | VARDOUBLE {printf("Error! Unmatching Type!\n"); exit(0);}
     ;
-varfloat: VARFLOAT {printf("Varfloat = Varfloat");}
+varfloat: VARFLOAT 
+    | equation
+    | VARFLOAT OPA equation CPA 
+    | OPA equation CPA
     | NUM {printf("Error! Unmatching Type!\n"); exit(0);}
     | VARINT {printf("Error! Unmatching Type!\n"); exit(0);}
     | STRING {printf("Error! Unmatching Type!\n"); exit(0);}
@@ -94,7 +162,9 @@ varfloat: VARFLOAT {printf("Varfloat = Varfloat");}
     | DOUBLE {printf("Error! Unmatching Type!\n"); exit(0);}
     | VARDOUBLE {printf("Error! Unmatching Type!\n"); exit(0);}
     ;
-varstring: VARSTRING {printf("Varstring = Varstring");}
+varstring: VARSTRING 
+    | equation
+    | VARSTRING OPA equation CPA 
     | FLOAT {printf("Error! Unmatching Type!\n"); exit(0);}
     | VARFLOAT {printf("Error! Unmatching Type!\n"); exit(0);}
     | NUM {printf("Error! Unmatching Type!\n"); exit(0);}
@@ -102,7 +172,10 @@ varstring: VARSTRING {printf("Varstring = Varstring");}
     | DOUBLE {printf("Error! Unmatching Type!\n"); exit(0);}
     | VARDOUBLE {printf("Error! Unmatching Type!\n"); exit(0);}
     ;
-vardouble: VARDOUBLE {printf("Vardouble = Vardouble");}
+vardouble: VARDOUBLE
+    | equation
+    | VARDOUBLE OPA equation CPA
+    | OPA equation CPA
     | FLOAT {printf("Error! Unmatching Type!\n"); exit(0);}
     | VARFLOAT {printf("Error! Unmatching Type!\n"); exit(0);}
     | STRING {printf("Error! Unmatching Type!\n"); exit(0);}
@@ -120,20 +193,32 @@ var: VARINT {printf("Int Input found!\n");}
     | VARFLOAT {printf("Float Input found!\n");}
     | VARDOUBLE {printf("Double Input found!\n");}
     | VARSTRING {printf("String Input found!\n");}
+    | VARINT OPA VARINT CPA
     ;
 gotoline:
     GOSUB NUM {printf("Gosub found!\n");} //Push RA to stack, which is next in line to this stmt after jumping to the given address
     | GOTO NUM {printf("Goto found!\n");} //Just jump to this address 
     ;
 data:
-    data COMMA NUM {printf("%d ", $3);}
-    | data COMMA STRING {printf("%s ", $3);}
-    | data COMMA FLOAT {printf("%f ", $3);}
-    | data COMMA DOUBLE {printf("%lf ", $3);}
-    | DATA NUM {printf("%d ", $2);}
-    | DATA STRING {printf("%s ", $2);}
-    | DATA FLOAT {printf("%f ", $2);}
-    | DATA DOUBLE {printf("%lf ", $2);}
+    data COMMA NUM
+    | data COMMA STRING
+    | data COMMA FLOAT
+    | data COMMA DOUBLE
+    | DATA NUM
+    | DATA STRING
+    | DATA FLOAT
+    | DATA DOUBLE
+    ;
+forloop:
+    FOR VARINT EQUAL NUM TO equation STEP NUM EOL subcode NUM NEXT VARINT
+    | FOR VARINT EQUAL NUM TO equation STEP SUB NUM EOL subcode NUM NEXT VARINT
+    | FOR VARINT EQUAL NUM TO equation EOL subcode NUM NEXT VARINT
+    | FOR VARINT EQUAL NUM TO equation EOL NUM NEXT VARINT
+    | FOR VARINT EQUAL NUM TO equation STEP NUM EOL NUM NEXT VARINT
+    | FOR VARINT EQUAL NUM TO equation STEP SUB NUM EOL NUM NEXT VARINT
+    ;
+subcode: subcode stmt
+    | stmt
     ;
 %%
 
@@ -148,24 +233,9 @@ int main(){
     //counting lines in file
     
     char filename[] = "input.txt";
-    int num_lines = 0;
-    FILE *file = fopen(filename, "r");
-    char line[1024];
-
-    if (file){
-        while (fgets(line, sizeof(line), file)){
-            num_lines++;
-        }
-        fclose(file);
-    }
-
-    //counting finished
-
-    
-    FILE *fp; int i;
+    FILE *fp; int i; int temp= -1;
     fp = fopen(filename,"r");
     yyin = fp;
-    for(i=0;i<num_lines;i++)
-        yyparse();
+    yyparse();
     return 0;
 }
